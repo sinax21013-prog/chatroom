@@ -1,109 +1,110 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Realtime Chatroom</title>
-<style>
-  :root { --card:#fff; --bg:#f5f6fb; --accent:#4CAF50; --me:#d1ffd6; --other:#e2e2ff; }
-  html,body{height:100%; margin:0; font-family:Arial,sans-serif; background:var(--bg);}
-  .wrap{min-height:100%; display:flex; align-items:center; justify-content:center; padding:20px;}
-  .card{background:var(--card); width:100%; max-width:420px; border-radius:14px; box-shadow:0 8px 30px rgba(2,6,23,0.08); padding:18px;}
-  h2{margin:0 0 14px; text-align:center;}
-  .field{margin-bottom:10px;}
-  input[type=text], input[type=password]{width:100%; padding:11px; border-radius:10px; border:1px solid #e0e0e0; font-size:14px;}
-  button{width:100%; padding:11px; border-radius:10px; background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer;}
-  .chatbox{height:320px; overflow:auto; padding:12px; border-radius:10px; border:1px solid #eee; background:#fcfdff; display:flex; flex-direction:column; gap:6px;}
-  .msg{padding:8px 12px; border-radius:12px; max-width:74%; word-wrap:break-word;}
-  .me{background:var(--me); align-self:flex-end;}
-  .other{background:var(--other); align-self:flex-start;}
-  .chat-input{display:flex; gap:8px; margin-top:10px;}
-  .chat-input input{flex:1; padding:10px; border-radius:10px; border:1px solid #e0e0e0;}
-  .small{font-size:13px; color:#666; text-align:center; margin-top:8px;}
-  @media (max-width:420px){ .card{padding:14px} .chatbox{height:260px} }
-</style>
+  <meta charset="UTF-8">
+  <title>Chatroom</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .chat-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 360px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h2 {
+      text-align: center;
+      margin: 0 0 15px;
+    }
+
+    #chat {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      height: 250px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    #message {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    #sendBtn {
+      background: #4CAF50;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      width: 100%;
+    }
+
+    #sendBtn:hover {
+      background: #45a049;
+    }
+
+    #user-label {
+      margin-top: 8px;
+      font-size: 12px;
+      text-align: center;
+      color: #555;
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="card" id="loginCard">
-    <h2>Login</h2>
-    <div class="field"><input id="username" type="text" placeholder="Username"></div>
-    <div class="field"><input id="password" type="password" placeholder="Password"></div>
-    <button onclick="login()">Login</button>
-    <p id="loginError" class="small" style="color:#c0392b"></p>
-    <p class="small">Users: niqqaz / Gaylords2025 • saladin / Gaylords2025</p>
-  </div>
-
-  <div class="card" id="chatCard" style="display:none;">
+  <div class="chat-container">
     <h2>Chatroom</h2>
-    <div class="chatbox" id="chatbox"></div>
-    <div class="chat-input">
-      <input id="messageInput" type="text" placeholder="Type a message...">
-      <button onclick="sendMessage()">Send</button>
-    </div>
-    <p class="small">You are: <span id="who"></span></p>
+    <div id="chat"></div>
+    <input id="message" type="text" placeholder="Type your message...">
+    <button id="sendBtn">Send</button>
+    <div id="user-label">You are: niqqaz</div>
   </div>
-</div>
 
-<!-- Socket.IO -->
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-<script>
-  const allowed = { "niqqaz":"Gaylords2025", "saladin":"Gaylords2025" };
-  let currentUser = null;
+  <!-- socket.io -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io("https://chatroom-kikj.onrender.com");
 
-  const loginCard = document.getElementById('loginCard');
-  const chatCard = document.getElementById('chatCard');
-  const chatbox = document.getElementById('chatbox');
-  const who = document.getElementById('who');
+    const chat = document.getElementById("chat");
+    const messageInput = document.getElementById("message");
+    const sendBtn = document.getElementById("sendBtn");
 
-  // Replace <RENDER_BACKEND_URL> with your Render backend URL (https)
-  const socket = io("https://chatroom-kikj.onrender.com");
+    sendBtn.onclick = () => {
+      const msg = messageInput.value.trim();
+      if (msg) {
+        socket.emit("chatMessage", msg);
+        messageInput.value = "";
+      }
+    };
 
-  socket.on('history', arr => {
-    chatbox.innerHTML = '';
-    arr.forEach(renderMessage);
-    chatbox.scrollTop = chatbox.scrollHeight;
-  });
-
-  socket.on('chatMessage', msg => {
-    renderMessage(msg);
-    chatbox.scrollTop = chatbox.scrollHeight;
-  });
-
-  function renderMessage(msg){
-    const d = document.createElement('div');
-    d.className = 'msg ' + (msg.user===currentUser ? 'me':'other');
-    const time = new Date(msg.timestamp||Date.now());
-    const hh = time.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    d.textContent = `${msg.user}: ${msg.text} (${hh})`;
-    chatbox.appendChild(d);
-  }
-
-  function login(){
-    const u=document.getElementById('username').value.trim();
-    const p=document.getElementById('password').value;
-    const err=document.getElementById('loginError');
-    err.textContent='';
-    if(allowed[u] && allowed[u]===p){
-      currentUser=u;
-      loginCard.style.display='none';
-      chatCard.style.display='block';
-      who.textContent=currentUser;
-    }else{err.textContent='Invalid username or password'}
-  }
-
-  function sendMessage(){
-    const input=document.getElementById('messageInput');
-    const text=input.value.trim();
-    if(!text || !currentUser) return;
-    socket.emit('chatMessage',{user:currentUser,text});
-    input.value=''; input.focus();
-  }
-
-  // send on Enter key
-  document.getElementById('messageInput').addEventListener('keydown',e=>{
-    if(e.key==='Enter') sendMessage();
-  });
-</script>
+    socket.on("chatMessage", (msg) => {
+      const div = document.createElement("div");
+      div.textContent = msg;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    });
+  </script>
 </body>
 </html>
