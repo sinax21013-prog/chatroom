@@ -57,7 +57,7 @@
   const who = document.getElementById('who');
 
   // Replace <RENDER_BACKEND_URL> with your Render backend URL (https)
-  const socket = io("https://<RENDER_BACKEND_URL>");
+  const socket = io("https://chatroom-kikj.onrender.com");
 
   socket.on('history', arr => {
     chatbox.innerHTML = '';
