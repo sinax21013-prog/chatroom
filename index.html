@@ -14,19 +14,34 @@
       margin: 0;
     }
 
-    .chat-container {
+    .container {
       background: white;
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       width: 360px;
-      display: flex;
-      flex-direction: column;
     }
 
     h2 {
       text-align: center;
-      margin: 0 0 15px;
+      margin-bottom: 15px;
+    }
+
+    #loginForm, #chatroom {
+      display: none;
+      flex-direction: column;
+    }
+
+    #loginForm.active, #chatroom.active {
+      display: flex;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
 
     #chat {
@@ -46,7 +61,6 @@
       border-radius: 6px;
       margin-bottom: 10px;
       font-size: 14px;
-      box-sizing: border-box;
     }
 
     #sendBtn {
@@ -74,37 +88,78 @@
   </style>
 </head>
 <body>
-  <div class="chat-container">
-    <h2>Chatroom</h2>
-    <div id="chat"></div>
-    <input id="message" type="text" placeholder="Type your message...">
-    <button id="sendBtn">Send</button>
-    <div id="user-label">You are: niqqaz</div>
+  <div class="container">
+
+    <!-- Login form -->
+    <div id="loginForm" class="active">
+      <h2>Login</h2>
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password">
+      <button id="loginBtn">Login</button>
+      <p id="loginError" style="color:red; font-size:13px; display:none;">Invalid login.</p>
+    </div>
+
+    <!-- Chatroom -->
+    <div id="chatroom">
+      <h2>Chatroom</h2>
+      <div id="chat"></div>
+      <input id="message" type="text" placeholder="Type your message...">
+      <button id="sendBtn">Send</button>
+      <div id="user-label"></div>
+    </div>
+
   </div>
 
-  <!-- socket.io -->
+  <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-    const socket = io("https://chatroom-kikj.onrender.com");
+    // Hardcoded user credentials
+    const USERS = {
+      "niqqaz": "Gaylords2025",
+      "saladin": "Gaylords2025"
+    };
 
-    const chat = document.getElementById("chat");
-    const messageInput = document.getElementById("message");
-    const sendBtn = document.getElementById("sendBtn");
+    let currentUser = null;
+    let socket = null;
 
-    sendBtn.onclick = () => {
-      const msg = messageInput.value.trim();
-      if (msg) {
-        socket.emit("chatMessage", msg);
-        messageInput.value = "";
+    const loginForm = document.getElementById("loginForm");
+    const chatroom = document.getElementById("chatroom");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginError = document.getElementById("loginError");
+
+    loginBtn.onclick = () => {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (USERS[username] && USERS[username] === password) {
+        currentUser = username;
+        loginForm.classList.remove("active");
+        chatroom.classList.add("active");
+        document.getElementById("user-label").textContent = "You are: " + currentUser;
+
+        // Connect to backend
+        socket = io("https://chatroom-kikj.onrender.com");
+
+        // Listen for messages
+        socket.on("chatMessage", (data) => {
+          const div = document.createElement("div");
+          div.textContent = data.user + ": " + data.text;
+          document.getElementById("chat").appendChild(div);
+          document.getElementById("chat").scrollTop = document.getElementById("chat").scrollHeight;
+        });
+      } else {
+        loginError.style.display = "block";
       }
     };
 
-    socket.on("chatMessage", (msg) => {
-      const div = document.createElement("div");
-      div.textContent = msg;
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
-    });
+    // Sending messages
+    document.getElementById("sendBtn").onclick = () => {
+      const message = document.getElementById("message").value.trim();
+      if (message && socket) {
+        socket.emit("chatMessage", { user: currentUser, text: message });
+        document.getElementById("message").value = "";
+      }
+    };
   </script>
 </body>
 </html>
