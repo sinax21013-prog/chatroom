@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
-    /* Global Reset */
     * {
       margin: 0;
       padding: 0;
@@ -23,7 +22,6 @@
       color: #eee;
     }
 
-    /* Panels */
     #loginPanel, #chatPanel {
       background: rgba(20, 20, 20, 0.9);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -76,7 +74,6 @@
       background: linear-gradient(135deg, #005ecc, #00c1d6);
     }
 
-    /* Chat box */
     #chat {
       background: rgba(0,0,0,0.5);
       border-radius: 12px;
@@ -116,13 +113,11 @@
       align-self: flex-start;
     }
 
-    /* Animations */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Responsive tweaks */
     @media (max-width: 600px) {
       #chat {
         height: 250px;
@@ -150,7 +145,8 @@
 
 <script>
 let socket;
-const BACKEND_URL = window?.__ENV__?.VITE_BACKEND_URL || "http://localhost:3000";
+// 🔥 Hardcode your Render backend URL here
+const BACKEND_URL = "https://your-render-app.onrender.com";  
 let currentUser = "";
 
 // Login handler
@@ -205,10 +201,6 @@ function sendMessage() {
     input.value = "";
   }
 }
-</script>
-
-<script>
-window.__ENV__ = { VITE_BACKEND_URL: "{{VITE_BACKEND_URL}}" };
 </script>
 
 </body>
