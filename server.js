@@ -1,88 +1,121 @@
 // server.js
 const express = require("express");
 const http = require("http");
+const cors = require("cors");
 const { Server } = require("socket.io");
+const bcrypt = require("bcryptjs");  // password hashing
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
+
+// 🔥 Set this to your deployed Netlify URL
+const FRONTEND_ORIGIN = "https://verdant-moxie-0f5883.netlify.app";
+
+// Middleware
 app.use(express.json());
+app.use(cors({
+  origin: FRONTEND_ORIGIN,
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
-
-// --- User database (with bcrypt hashes) ---
+// Users (in real-world → database)
 const users = [
   {
-    username: "niqqaz",
-    passwordHash: bcrypt.hashSync("Gaylords2025", 10)
+    id: 1,
+    username: "admin",
+    // password = "password123" (already hashed)
+    password: bcrypt.hashSync("password123", 10)
   },
   {
-    username: "saladin",
-    passwordHash: bcrypt.hashSync("Gaylords2025", 10)
+    id: 2,
+    username: "test",
+    password: bcrypt.hashSync("test123", 10)
   }
 ];
 
-// --- Login endpoint ---
+// Secret key for JWT (store in Render env var!)
+const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
+
+// --- Authentication Routes ---
+// Login
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find((u) => u.username === username);
-  if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return res.status(401).json({ error: "Invalid credentials" });
+  const user = users.find(u => u.username === username);
+  if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) return res.status(401).json({ message: "Invalid credentials" });
+
+  // Sign JWT token
+  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
+    expiresIn: "2h"
+  });
+
   res.json({ token });
 });
 
-// --- Socket.IO setup with CORS ---
-const allowedOrigins = [
-  "https://verdant-moxie-0f5883.netlify.app",
-  "https://verdant-moxie-0f5833.netlify.app"
-];
+// Middleware to check JWT
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.sendStatus(401);
 
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+// Example protected route
+app.get("/me", authenticateToken, (req, res) => {
+  res.json({ user: req.user });
+});
+
+// --- Socket.IO Setup ---
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn("❌ Blocked CORS request from:", origin);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST"]
+    origin: FRONTEND_ORIGIN,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
-// --- Socket.IO Auth middleware ---
+// Socket.IO auth middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
-  if (!token) return next(new Error("No token provided"));
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    socket.user = payload.username;
+  if (!token) return next(new Error("Authentication error"));
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return next(new Error("Authentication error"));
+    socket.user = user;
     next();
-  } catch (err) {
-    next(new Error("Invalid token"));
-  }
+  });
 });
 
-// --- Socket events ---
 io.on("connection", (socket) => {
-  console.log("✅ User connected:", socket.user);
+  console.log(`User connected: ${socket.user.username}`);
 
   socket.on("chatMessage", (msg) => {
-    const data = { user: socket.user, msg };
-    io.emit("chatMessage", data);
+    io.emit("chatMessage", {
+      user: socket.user.username,
+      message: msg,
+      time: new Date().toISOString()
+    });
   });
 
   socket.on("disconnect", () => {
-    console.log("❌ User disconnected:", socket.user);
+    console.log(`User disconnected: ${socket.user.username}`);
   });
 });
 
-// --- Start server ---
+// --- Start Server ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
