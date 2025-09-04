@@ -22,18 +22,19 @@ app.use(cors({
   credentials: true
 }));
 
-// Users (in real-world → database)
+// Users with pre-hashed passwords (generated once with bcrypt.hashSync("password", 10))
 const users = [
   {
     id: 1,
     username: "admin",
-    // password = "password123" (already hashed)
-    password: bcrypt.hashSync("password123", 10)
+    // password = "password123"
+    password: "$2a$10$OydsHHTQcuFTVJq8D7x5zOH/CHvQb6x8hT1yZ.QeRj8DqgS2KgiAO"
   },
   {
     id: 2,
     username: "test",
-    password: bcrypt.hashSync("test123", 10)
+    // password = "test123"
+    password: "$2a$10$OQ7aP2Sg1N0sm/nbdCNp6OHCDGPlwbLq0Gh0FrnKSTNmvSu37bM8y"
   }
 ];
 
@@ -41,7 +42,6 @@ const users = [
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
 // --- Authentication Routes ---
-// Login
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
@@ -51,7 +51,6 @@ app.post("/login", async (req, res) => {
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) return res.status(401).json({ message: "Invalid credentials" });
 
-  // Sign JWT token
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
     expiresIn: "2h"
   });
