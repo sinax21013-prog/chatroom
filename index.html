@@ -2,164 +2,214 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Chatroom</title>
+  <title>Secure Chatroom</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6fb;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    /* Global Reset */
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", Roboto, sans-serif;
     }
 
-    .container {
-      background: white;
+    body {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top left, #111, #000);
+      color: #eee;
+    }
+
+    /* Panels */
+    #loginPanel, #chatPanel {
+      background: rgba(20, 20, 20, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      width: 360px;
+      width: 95%;
+      max-width: 450px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.5s ease;
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 15px;
-    }
-
-    #loginForm, #chatroom {
-      display: none;
-      flex-direction: column;
-    }
-
-    #loginForm.active, #chatroom.active {
-      display: flex;
-    }
-
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      padding: 10px;
+      color: #00eaff;
+      font-weight: 600;
       margin-bottom: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      letter-spacing: 1px;
     }
 
-    #chat {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px;
-      height: 250px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-
-    #message {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-
-    #sendBtn {
-      background: #4CAF50;
-      color: white;
+    input {
       padding: 12px;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: #eee;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0077ff, #00eaff);
+      color: #fff;
       font-weight: bold;
-      width: 100%;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font-size: 16px;
     }
 
-    #sendBtn:hover {
-      background: #45a049;
+    button:hover {
+      background: linear-gradient(135deg, #005ecc, #00c1d6);
     }
 
-    #user-label {
-      margin-top: 8px;
-      font-size: 12px;
-      text-align: center;
-      color: #555;
+    /* Chat box */
+    #chat {
+      background: rgba(0,0,0,0.5);
+      border-radius: 12px;
+      padding: 12px;
+      height: 350px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 15px;
+      scrollbar-width: thin;
+      scrollbar-color: #00eaff #111;
+    }
+
+    #chat::-webkit-scrollbar {
+      width: 6px;
+    }
+    #chat::-webkit-scrollbar-thumb {
+      background: #00eaff;
+      border-radius: 8px;
+    }
+
+    .message {
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 75%;
+      line-height: 1.3;
+    }
+
+    .self {
+      background: rgba(0, 122, 255, 0.3);
+      align-self: flex-end;
+    }
+
+    .other {
+      background: rgba(255,255,255,0.1);
+      align-self: flex-start;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 600px) {
+      #chat {
+        height: 250px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
 
-    <!-- Login form -->
-    <div id="loginForm" class="active">
-      <h2>Login</h2>
-      <input type="text" id="username" placeholder="Username">
-      <input type="password" id="password" placeholder="Password">
-      <button id="loginBtn">Login</button>
-      <p id="loginError" style="color:red; font-size:13px; display:none;">Invalid login.</p>
-    </div>
-
-    <!-- Chatroom -->
-    <div id="chatroom">
-      <h2>Chatroom</h2>
-      <div id="chat"></div>
-      <input id="message" type="text" placeholder="Type your message...">
-      <button id="sendBtn">Send</button>
-      <div id="user-label"></div>
-    </div>
-
+  <!-- Login Panel -->
+  <div id="loginPanel">
+    <h2>🔐 Secure Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
   </div>
 
-  <!-- Socket.IO -->
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script>
-    // Hardcoded user credentials
-    const USERS = {
-      "niqqaz": "Gaylords2025",
-      "saladin": "Gaylords2025"
-    };
+  <!-- Chat Panel -->
+  <div id="chatPanel" style="display:none;">
+    <h2>💬 Private Chat</h2>
+    <div id="chat"></div>
+    <input type="text" id="message" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()">
+    <button onclick="sendMessage()">Send</button>
+  </div>
 
-    let currentUser = null;
-    let socket = null;
+<script>
+let socket;
+const BACKEND_URL = window?.__ENV__?.VITE_BACKEND_URL || "http://localhost:3000";
+let currentUser = "";
 
-    const loginForm = document.getElementById("loginForm");
-    const chatroom = document.getElementById("chatroom");
-    const loginBtn = document.getElementById("loginBtn");
-    const loginError = document.getElementById("loginError");
+// Login handler
+async function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-    loginBtn.onclick = () => {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
+  try {
+    const res = await fetch(`${BACKEND_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
 
-      if (USERS[username] && USERS[username] === password) {
-        currentUser = username;
-        loginForm.classList.remove("active");
-        chatroom.classList.add("active");
-        document.getElementById("user-label").textContent = "You are: " + currentUser;
+    if (!res.ok) {
+      alert("❌ Login failed");
+      return;
+    }
 
-        // Connect to backend
-        socket = io("https://chatroom-kikj.onrender.com");
+    const { token } = await res.json();
+    localStorage.setItem("token", token);
+    currentUser = username;
 
-        // Listen for messages
-        socket.on("chatMessage", (data) => {
-          const div = document.createElement("div");
-          div.textContent = data.user + ": " + data.text;
-          document.getElementById("chat").appendChild(div);
-          document.getElementById("chat").scrollTop = document.getElementById("chat").scrollHeight;
-        });
-      } else {
-        loginError.style.display = "block";
-      }
-    };
+    socket = io(BACKEND_URL, { auth: { token } });
 
-    // Sending messages
-    document.getElementById("sendBtn").onclick = () => {
-      const message = document.getElementById("message").value.trim();
-      if (message && socket) {
-        socket.emit("chatMessage", { user: currentUser, text: message });
-        document.getElementById("message").value = "";
-      }
-    };
-  </script>
+    socket.on("connect", () => {
+      document.getElementById("loginPanel").style.display = "none";
+      document.getElementById("chatPanel").style.display = "flex";
+    });
+
+    socket.on("chatMessage", (data) => {
+      const chat = document.getElementById("chat");
+      const div = document.createElement("div");
+      div.classList.add("message");
+      div.classList.add(data.user === currentUser ? "self" : "other");
+      div.textContent = `${data.user}: ${data.msg}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    alert("⚠️ Error connecting to server");
+  }
+}
+
+// Send message
+function sendMessage() {
+  const input = document.getElementById("message");
+  if (socket && input.value.trim()) {
+    socket.emit("chatMessage", input.value);
+    input.value = "";
+  }
+}
+</script>
+
+<script>
+window.__ENV__ = { VITE_BACKEND_URL: "{{VITE_BACKEND_URL}}" };
+</script>
+
 </body>
 </html>
