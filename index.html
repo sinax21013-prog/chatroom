@@ -1,207 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Secure Chatroom</title>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <title>Private Techy Chatroom</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Segoe UI", Roboto, sans-serif;
-    }
-
     body {
-      height: 100vh;
+      margin: 0;
+      font-family: monospace, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
       display: flex;
-      align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at top left, #111, #000);
-      color: #eee;
+      align-items: center;
+      height: 100vh;
     }
 
-    #loginPanel, #chatPanel {
-      background: rgba(20, 20, 20, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+    #login, #chatroom {
+      background: #161b22;
       padding: 20px;
+      border-radius: 12px;
       width: 95%;
-      max-width: 450px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      animation: fadeIn 0.5s ease;
+      max-width: 420px;
+      box-shadow: 0 0 20px rgba(0,255,150,0.2);
     }
 
     h2 {
       text-align: center;
-      color: #00eaff;
-      font-weight: 600;
-      margin-bottom: 10px;
-      letter-spacing: 1px;
+      margin-bottom: 20px;
+      color: #58a6ff;
     }
 
     input {
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.05);
-      color: #eee;
-      font-size: 16px;
-      outline: none;
-    }
-
-    input::placeholder {
-      color: #aaa;
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      color: #c9d1d9;
     }
 
     button {
-      padding: 12px;
+      width: 100%;
+      padding: 10px;
       border: none;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #0077ff, #00eaff);
-      color: #fff;
-      font-weight: bold;
+      border-radius: 6px;
+      background: #238636;
+      color: white;
       cursor: pointer;
-      transition: 0.2s ease;
-      font-size: 16px;
+      margin-top: 10px;
     }
 
     button:hover {
-      background: linear-gradient(135deg, #005ecc, #00c1d6);
+      background: #2ea043;
     }
 
-    #chat {
-      background: rgba(0,0,0,0.5);
-      border-radius: 12px;
-      padding: 12px;
-      height: 350px;
+    #messages {
+      border: 1px solid #30363d;
+      height: 300px;
       overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 15px;
-      scrollbar-width: thin;
-      scrollbar-color: #00eaff #111;
-    }
-
-    #chat::-webkit-scrollbar {
-      width: 6px;
-    }
-    #chat::-webkit-scrollbar-thumb {
-      background: #00eaff;
-      border-radius: 8px;
-    }
-
-    .message {
       padding: 10px;
-      border-radius: 10px;
-      max-width: 75%;
-      line-height: 1.3;
+      margin-bottom: 10px;
+      background: #0d1117;
+      border-radius: 8px;
+      font-size: 14px;
     }
 
-    .self {
-      background: rgba(0, 122, 255, 0.3);
-      align-self: flex-end;
+    .msg {
+      margin: 4px 0;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #21262d;
     }
 
-    .other {
-      background: rgba(255,255,255,0.1);
-      align-self: flex-start;
+    .msg strong {
+      color: #58a6ff;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    #message {
+      width: calc(100% - 90px);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      color: #c9d1d9;
     }
 
-    @media (max-width: 600px) {
-      #chat {
-        height: 250px;
-      }
+    #send {
+      width: 80px;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #8957e5;
+      color: white;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+
+    #send:hover {
+      background: #a371f7;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
     }
   </style>
 </head>
 <body>
-
-  <!-- Login Panel -->
-  <div id="loginPanel">
+  <!-- Login Form -->
+  <div id="login">
     <h2>🔐 Secure Login</h2>
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <button onclick="login()">Login</button>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="loginBtn">Login</button>
+    <p id="loginStatus" style="color:red; text-align:center; margin-top:10px;"></p>
   </div>
 
-  <!-- Chat Panel -->
-  <div id="chatPanel" style="display:none;">
-    <h2>💬 Private Chat</h2>
-    <div id="chat"></div>
-    <input type="text" id="message" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()">
-    <button onclick="sendMessage()">Send</button>
+  <!-- Chatroom -->
+  <div id="chatroom" style="display:none;">
+    <h2>💬 Techy Chatroom</h2>
+    <div id="messages"></div>
+    <div class="input-row">
+      <input id="message" placeholder="Type a message..." />
+      <button id="send">Send</button>
+    </div>
   </div>
 
-<script>
-let socket;
-// 🔥 Hardcode your Render backend URL here
-const BACKEND_URL = "https://chatroom-kikj.onrender.com";  
-let currentUser = "";
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const BACKEND_URL = "https://chatroom-kikj.onrender.com"; //
+    const loginDiv = document.getElementById("login");
+    const chatroomDiv = document.getElementById("chatroom");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginStatus = document.getElementById("loginStatus");
+    const messagesDiv = document.getElementById("messages");
+    const messageInput = document.getElementById("message");
+    const sendBtn = document.getElementById("send");
 
-// Login handler
-async function login() {
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value.trim();
+    let socket = null;
 
-  try {
-    const res = await fetch(`${BACKEND_URL}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
-    });
+    // Handle login
+    loginBtn.onclick = async () => {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
 
-    if (!res.ok) {
-      alert("❌ Login failed");
-      return;
+      try {
+        const res = await fetch(`${BACKEND_URL}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (!res.ok) {
+          loginStatus.textContent = "❌ Invalid username or password";
+          return;
+        }
+
+        const data = await res.json();
+        localStorage.setItem("token", data.token);
+
+        // Switch UI
+        loginDiv.style.display = "none";
+        chatroomDiv.style.display = "block";
+
+        connectSocket();
+      } catch (err) {
+        console.error("Login error:", err);
+        loginStatus.textContent = "⚠️ Login failed";
+      }
+    };
+
+    // Connect Socket.IO with JWT
+    function connectSocket() {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      socket = io(BACKEND_URL, {
+        auth: { token }
+      });
+
+      socket.on("connect", () => {
+        console.log("Connected to chat server");
+      });
+
+      socket.on("chatMessage", (msg) => {
+        const div = document.createElement("div");
+        div.classList.add("msg");
+        div.innerHTML = `<strong>${msg.user}</strong>: ${msg.message}`;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      });
     }
 
-    const { token } = await res.json();
-    localStorage.setItem("token", token);
-    currentUser = username;
-
-    socket = io(BACKEND_URL, { auth: { token } });
-
-    socket.on("connect", () => {
-      document.getElementById("loginPanel").style.display = "none";
-      document.getElementById("chatPanel").style.display = "flex";
-    });
-
-    socket.on("chatMessage", (data) => {
-      const chat = document.getElementById("chat");
-      const div = document.createElement("div");
-      div.classList.add("message");
-      div.classList.add(data.user === currentUser ? "self" : "other");
-      div.textContent = `${data.user}: ${data.msg}`;
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
-    });
-
-  } catch (err) {
-    console.error("Login error:", err);
-    alert("⚠️ Error connecting to server");
-  }
-}
-
-// Send message
-function sendMessage() {
-  const input = document.getElementById("message");
-  if (socket && input.value.trim()) {
-    socket.emit("chatMessage", input.value);
-    input.value = "";
-  }
-}
-</script>
-
+    // Send message
+    sendBtn.onclick = () => {
+      const msg = messageInput.value.trim();
+      if (msg && socket) {
+        socket.emit("chatMessage", msg);
+        messageInput.value = "";
+      }
+    };
+  </script>
 </body>
 </html>
